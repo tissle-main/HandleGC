@@ -1,4 +1,4 @@
-﻿using HandleGC.LAS;
+﻿using HandleGC.LAS.Allocations;
 using HandleGC.UAS.Handles;
 using System.Runtime.InteropServices;
 

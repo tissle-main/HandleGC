@@ -15,6 +15,10 @@ internal unsafe struct Handle(ulong thisRawValue)
     #endregion
 
     #region Instance
+    internal ulong RawValue
+    {
+        get => thisRawValue;
+    }
     internal byte* Address
     {
         readonly get => (byte*)(thisRawValue & AddressMask);

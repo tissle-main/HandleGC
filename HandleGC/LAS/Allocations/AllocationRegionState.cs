@@ -1,4 +1,4 @@
-﻿namespace HandleGC.LAS;
+﻿namespace HandleGC.LAS.Allocations;
 
 internal enum AllocationRegionState : uint
 {

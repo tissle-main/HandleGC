@@ -1,6 +1,6 @@
 ﻿using HandleGC.UAS;
 
-namespace HandleGC.LAS;
+namespace HandleGC.LAS.Allocations;
 
 internal static unsafe class AllocationHeap
 {

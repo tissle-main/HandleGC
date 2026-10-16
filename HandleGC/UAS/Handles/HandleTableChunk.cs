@@ -27,7 +27,7 @@ internal unsafe struct HandleTableChunk(Handle* startAddress, uint baseCellIndex
         get => baseCellIndex / CellCount;
     }
 
-    private bool Scan()
+    internal bool Scan()
     {
         ulong newBitmap = 0;
         ulong* handleTable = (ulong*)startAddress;
