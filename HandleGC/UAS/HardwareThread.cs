@@ -1,4 +1,5 @@
-﻿using HandleGC.UAS.Handles;
+﻿using HandleGC.LAS;
+using HandleGC.UAS.Handles;
 using System.Runtime.InteropServices;
 
 namespace HandleGC.UAS;
@@ -7,4 +8,5 @@ namespace HandleGC.UAS;
 internal struct HardwareThread
 {
     internal HandleTableChunk handleTableChunk;
+    internal AllocationRegion allocationRegion;
 }
