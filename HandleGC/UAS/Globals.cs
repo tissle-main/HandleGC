@@ -8,4 +8,5 @@ internal struct Globals
     internal ulong globalHeapSize;
     internal ulong allocationHeapSize;
     internal HardwareThread hardwareThread1;
+    internal HardwareThread hardwareThread2;
 }

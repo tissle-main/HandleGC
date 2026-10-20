@@ -11,8 +11,8 @@ internal unsafe struct HandleTableChunk(Handle* startAddress, uint baseCellIndex
 
     #region Instance
     private readonly Handle* startAddress = startAddress;
-    private readonly uint baseCellIndex = baseCellIndex;
     private ulong freeCellBitmap = 0;
+    private readonly uint baseCellIndex = baseCellIndex;
 
     internal readonly bool IsDefault
     {

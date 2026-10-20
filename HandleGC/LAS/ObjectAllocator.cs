@@ -12,8 +12,14 @@ internal static unsafe class ObjectAllocator
         if(region.FreeSpace < length + (ulong)sizeof(ObjectHeader))
         {
             region.regionHeader->regionState = AllocationRegionState.Retired;
-            thread->allocationRegion = new AllocationRegion(AllocationHeap.FindFirstFreeRegion());
-            thread->allocationRegion.regionHeader->regionState = AllocationRegionState.Active;
+            AllocationRegionState state;
+            do
+            {
+                thread->allocationRegion = new AllocationRegion(AllocationHeap.FindFirstFreeRegion());
+                state = thread->allocationRegion.regionHeader->regionState;
+                thread->allocationRegion.regionHeader->regionState = AllocationRegionState.Active;
+            }
+            while(Interlocked.CompareExchange(ref thread->allocationRegion.regionHeader->regionState, AllocationRegionState.Active, state) is AllocationRegionState.Active);
         }
         byte* address = region.HeadAddress;
         ObjectHeader* header = (ObjectHeader*)address;

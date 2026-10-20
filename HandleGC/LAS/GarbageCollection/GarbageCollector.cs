@@ -12,6 +12,20 @@ internal static unsafe class GarbageCollector
         obj = (ObjectHeader*)destination;
         UpperAddressSpace.HandleTable[obj->HandleIndex].Address = destination;
     }
+    internal static void MoveObjectSync(ObjectHeader* obj, byte* destination)
+    {
+        Handle* handle = UpperAddressSpace.HandleTable + obj->HandleIndex;
+        handle->RSFlag = true;
+        UpperAddressSpace.Globals->hardwareThread1.safePointReached = false;
+        UpperAddressSpace.Globals->hardwareThread2.safePointReached = false;
+        while(!UpperAddressSpace.Globals->hardwareThread1.safePointReached) ;
+        while(!UpperAddressSpace.Globals->hardwareThread2.safePointReached) ;
+        handle->GCLocked = true;
+        while(handle->UsageCount > 0) ;
+        MoveObject(obj, destination);
+        handle->RSFlag = false;
+        handle->GCLocked = false;
+    }
     internal static void CollectGlobalHeap()
     {
         byte* address = LowerAddressSpace.StartAddress;
@@ -22,7 +36,7 @@ internal static unsafe class GarbageCollector
             ObjectHeader* header = (ObjectHeader*)address;
             if(allocationAddress != address && header->Alive)
             {
-                MoveObject(header, allocationAddress);
+                MoveObjectSync(header, allocationAddress);
             }
             if(header->Alive)
             {
