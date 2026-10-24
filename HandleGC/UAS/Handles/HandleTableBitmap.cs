@@ -26,7 +26,7 @@ internal static unsafe class HandleTableBitmap
         ulong previous = Interlocked.Or(ref words[wordIndex], mask);
         return (previous & mask) == 0;
     }
-    internal static HandleTableChunk ReserveFreeChunk()
+    internal static HandleTableChunk ReserveFreeChunk(out bool success)
     {
         ulong* words = (ulong*)UpperAddressSpace.HandleTableBitmap;
         for(uint wordIndex = 0; wordIndex < WordCount; wordIndex++)
@@ -45,8 +45,12 @@ internal static unsafe class HandleTableBitmap
                 continue;
             }
             uint globalHandleIndex = globalChunkIndex * HandleTableChunk.HandleCount;
+
+            success = true;
             return new HandleTableChunk(UpperAddressSpace.HandleTable + globalHandleIndex, globalHandleIndex);
         }
+
+        success = false;
         return default;
     }
 }

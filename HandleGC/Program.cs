@@ -1,15 +1,29 @@
 ﻿using HandleGC.UAS;
-using HandleGC.LAS;
-using HandleGC.UAS.Heap;
+using System.Diagnostics;
+using HandleGC.UAS.Handles;
 
+UpperAddressSpace.Init();
 unsafe
 {
-    UpperAddressSpace.Init();
-    LowerAddressSpace.Init();
-    MemoryBlock unmanagedBlock = UnmanagedHeap.Allocate(1);
-    UnmanagedHeap.Free(unmanagedBlock);
-    ulong* handle = ObjectAllocator.Allocate(&UpperAddressSpace.Globals->hardwareThread1, 64);
-    if(handle is null)
-        throw new OutOfMemoryException("Unable to allocate the startup smoke-test object.");
-    ObjectAccessor.DeleteObject(handle);
+    Run(&UpperAddressSpace.Globals->hardwareThread1);
+    Run(&UpperAddressSpace.Globals->hardwareThread2);
+
+    static void Run(HardwareThread* pth)
+    {
+        Thread thread = new(pthObj =>
+        {
+            HardwareThread* pth = (HardwareThread*)(ulong)pthObj;
+            for(int index = 0; true; index++)
+            {
+                long timestamp = Stopwatch.GetTimestamp();
+                uint handleIndex = HandleAllocator.Allocate(pth, (byte*)index, out bool success);
+                Console.WriteLine("HandleIndex: {0}", handleIndex);
+                if(Random.Shared.NextDouble() > 0.25)
+                {
+                    HandleAllocator.Free(handleIndex);
+                }
+            }
+        });
+        thread.Start((ulong)pth);
+    }
 }

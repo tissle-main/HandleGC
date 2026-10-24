@@ -29,7 +29,6 @@ internal static unsafe class UpperAddressSpace
         NativeMemory.Clear(StartAddress, (nuint)Size);
         NativeMemory.Fill(HandleTableBitmap, (nuint)HandleTableBitmapSize, byte.MaxValue);
         
-        Heap.UnmanagedHeap.Init();
         Globals->Init();
     }
 }

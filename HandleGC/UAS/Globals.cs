@@ -8,14 +8,13 @@ internal unsafe struct Globals
 {
     internal HardwareThread hardwareThread1;
     internal HardwareThread hardwareThread2;
-    internal ulong globalHeapSize;
-    internal ulong allocationHeapSize;
 
     internal void Init()
     {
-        hardwareThread1.handleTableChunk = new(UpperAddressSpace.HandleTable, 0);
-        hardwareThread2.handleTableChunk = new(UpperAddressSpace.HandleTable + HandleTableChunk.HandleCount, HandleTableChunk.HandleCount);
+        hardwareThread1.handleTableChunk = new HandleTableChunk(UpperAddressSpace.HandleTable, 0);
         HandleTableBitmap.MarkOccupied(0);
+
+        hardwareThread2.handleTableChunk = new HandleTableChunk(UpperAddressSpace.HandleTable + HandleTableChunk.HandleCount, HandleTableChunk.HandleCount);
         HandleTableBitmap.MarkOccupied(1);
     }
 }
