@@ -8,7 +8,7 @@ internal static unsafe class HandleTableBitmap
     internal const ulong WordCount = UpperAddressSpace.HandleTableBitmapSize / sizeof(ulong);
     internal const uint ChunksPerWord = 64;
 
-    private static bool MarkOccupied(uint chunkIndex)
+    internal static bool MarkOccupied(uint chunkIndex)
     {
         ulong* words = (ulong*)UpperAddressSpace.HandleTableBitmap;
         (ulong wordIndex, ulong bitIndex) = ulong.DivRem(chunkIndex, 64);

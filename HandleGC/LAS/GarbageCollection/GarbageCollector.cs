@@ -10,21 +10,22 @@ internal static unsafe class GarbageCollector
     {
         Buffer.MemoryCopy(obj, destination, obj->Length, obj->Length);
         obj = (ObjectHeader*)destination;
-        UpperAddressSpace.HandleTable[obj->HandleIndex].Address = destination;
+        HandleTable.SetObjectAddress(obj->HandleIndex, destination);
     }
     internal static void MoveObjectSync(ObjectHeader* obj, byte* destination)
     {
-        Handle* handle = UpperAddressSpace.HandleTable + obj->HandleIndex;
-        handle->RSFlag = true;
+        uint handleIndex = obj->HandleIndex;
+        HandleTable.SetRSFlag(handleIndex, true);
         UpperAddressSpace.Globals->hardwareThread1.safePointReached = false;
         UpperAddressSpace.Globals->hardwareThread2.safePointReached = false;
         while(!UpperAddressSpace.Globals->hardwareThread1.safePointReached) ;
         while(!UpperAddressSpace.Globals->hardwareThread2.safePointReached) ;
-        handle->GCLocked = true;
-        while(handle->UsageCount > 0) ;
+        HandleTable.SetGCLocked(handleIndex, true);
+        while(HandleTable.GetUsageCount(handleIndex) > 0)
+            Thread.SpinWait(1);
         MoveObject(obj, destination);
-        handle->RSFlag = false;
-        handle->GCLocked = false;
+        HandleTable.SetGCLocked(handleIndex, false);
+        HandleTable.SetRSFlag(handleIndex, false);
     }
     internal static void CollectGlobalHeap()
     {
@@ -65,7 +66,6 @@ internal static unsafe class GarbageCollector
     internal static void CollectHandleTable()
     {
         uint chunkEndIndex = (uint)HandleTableBitmap.ChunkCount;
-        Handle* address = UpperAddressSpace.HandleTable;
         for(uint chunkIndex = 0; chunkIndex < chunkEndIndex; chunkIndex++)
         {
             if(UpperAddressSpace.Globals->hardwareThread1.handleTableChunk.ChunkIndex == chunkIndex)
@@ -73,7 +73,7 @@ internal static unsafe class GarbageCollector
                 continue;
             }
             uint baseCellIndex = chunkIndex * HandleTableChunk.HandleCount;
-            HandleTableChunk chunk = new(address + baseCellIndex, baseCellIndex);         
+            HandleTableChunk chunk = new(UpperAddressSpace.HandleTable + baseCellIndex, baseCellIndex);
             if(chunk.Scan())
             {
                 HandleTableBitmap.MarkFree(chunkIndex);

@@ -15,5 +15,7 @@ internal unsafe struct Globals
     {
         hardwareThread1.handleTableChunk = new(UpperAddressSpace.HandleTable, 0);
         hardwareThread2.handleTableChunk = new(UpperAddressSpace.HandleTable + HandleTableChunk.HandleCount, HandleTableChunk.HandleCount);
+        HandleTableBitmap.MarkOccupied(0);
+        HandleTableBitmap.MarkOccupied(1);
     }
 }

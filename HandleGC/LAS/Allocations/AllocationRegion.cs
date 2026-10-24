@@ -9,7 +9,7 @@ internal unsafe struct AllocationRegion(AllocationRegionHeader* regionHeader)
 
     internal readonly ulong FreeSpace
     {
-        get => AllocationHeap.RegionSize - regionHeader->allocatedSize - (ulong)sizeof(AllocationRegion);
+        get => AllocationHeap.RegionSize - regionHeader->allocatedSize - (ulong)sizeof(AllocationRegionHeader);
     }
     internal readonly byte* HeadAddress
     {

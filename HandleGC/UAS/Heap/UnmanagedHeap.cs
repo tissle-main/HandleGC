@@ -2,82 +2,95 @@
 
 internal static unsafe class UnmanagedHeap
 {
+    private static readonly Lock Sync = new();
+
     internal static MemoryBlock Allocate(ulong pageCount)
     {
         ArgumentOutOfRangeException.ThrowIfZero(pageCount);
-        ulong blockLength = pageCount * UpperAddressSpace.MemoryPageSize;
-        byte* currentAddress = UpperAddressSpace.UnmanagedHeap;
-        byte* heapEnd = currentAddress + UpperAddressSpace.UnmanagedHeapSize;
-        while(currentAddress < heapEnd)
+        ulong requestedLength = checked(pageCount * UpperAddressSpace.MemoryPageSize + MemoryBlockHeader.Size);
+        ulong blockLength = checked((requestedLength + UpperAddressSpace.MemoryPageSize - 1) / UpperAddressSpace.MemoryPageSize * UpperAddressSpace.MemoryPageSize);
+        lock(Sync)
         {
-            var currentHeader = (MemoryBlockHeader*)currentAddress;
-            ulong currentLength = currentHeader->CurrentLength;
-            if(!currentHeader->CurrentAlive && currentLength >= blockLength)
+            byte* currentAddress = UpperAddressSpace.UnmanagedHeap;
+            byte* heapEnd = currentAddress + UpperAddressSpace.UnmanagedHeapSize;
+            while(currentAddress < heapEnd)
             {
-                currentHeader->CurrentAlive = true;
-                ulong remainingLength = currentLength - blockLength;
-                if(remainingLength > 0)
+                var currentHeader = (MemoryBlockHeader*)currentAddress;
+                ulong currentLength = currentHeader->CurrentLength;
+                if(!currentHeader->CurrentAlive && currentLength >= blockLength)
                 {
-                    currentHeader->CurrentLength = blockLength;
-                    var nextHeader = (MemoryBlockHeader*)(currentAddress + blockLength);
-                    nextHeader->CurrentAlive = false;
-                    nextHeader->CurrentLength = remainingLength;
-                    nextHeader->PreviousAlive = true;
-                    nextHeader->PreviousLength = blockLength;
-
-                    byte* nextAddress = currentAddress + currentLength;
-                    if(nextAddress < heapEnd)
+                    currentHeader->CurrentAlive = true;
+                    ulong remainingLength = currentLength - blockLength;
+                    if(remainingLength >= MemoryBlockHeader.Size)
                     {
-                        var thirdHeader = (MemoryBlockHeader*)nextAddress;
-                        thirdHeader->PreviousLength = remainingLength;
-                    }
-                }
-                else
-                {
-                    byte* nextAddress = currentAddress + currentLength;
-                    if(nextAddress < heapEnd)
-                    {
-                        var nextHeader = (MemoryBlockHeader*)nextAddress;
+                        currentHeader->CurrentLength = blockLength;
+                        var nextHeader = (MemoryBlockHeader*)(currentAddress + blockLength);
+                        nextHeader->CurrentAlive = false;
+                        nextHeader->CurrentLength = remainingLength;
                         nextHeader->PreviousAlive = true;
+                        nextHeader->PreviousLength = blockLength;
+
+                        byte* nextAddress = currentAddress + currentLength;
+                        if(nextAddress < heapEnd)
+                        {
+                            var thirdHeader = (MemoryBlockHeader*)nextAddress;
+                            thirdHeader->PreviousLength = remainingLength;
+                        }
                     }
+                    else
+                    {
+                        byte* nextAddress = currentAddress + currentLength;
+                        if(nextAddress < heapEnd)
+                        {
+                            var nextHeader = (MemoryBlockHeader*)nextAddress;
+                            nextHeader->PreviousAlive = true;
+                        }
+                    }
+                    return new MemoryBlock(currentAddress);
                 }
-                return new MemoryBlock(currentAddress);
+                currentAddress += currentLength;
             }
-            currentAddress += currentLength;
         }
         throw new OutOfMemoryException("Upper address space does not contain a sufficiently large free block.");
     }
     internal static void Free(MemoryBlock block)
     {
-        MemoryBlockHeader* baseHeader = block.Header;
-        if(!baseHeader->CurrentAlive)
+        lock(Sync)
         {
-            return;
-        }
-        byte* heapStart = UpperAddressSpace.UnmanagedHeap;
-        byte* heapEnd = heapStart + UpperAddressSpace.UnmanagedHeapSize;
-        byte* baseAddress = block.Address;
-        baseHeader->CurrentAlive = false;
-        while(baseAddress > heapStart && !baseHeader->PreviousAlive)
-        {
-            baseAddress -= baseHeader->PreviousLength;
-            baseHeader = (MemoryBlockHeader*)baseAddress;
-        }
-        while(true)
-        {
-            byte* nextAddress = baseAddress + baseHeader->CurrentLength;
-            if(nextAddress >= heapEnd)
+            MemoryBlockHeader* baseHeader = block.Header;
+            if(!baseHeader->CurrentAlive)
             {
                 return;
             }
-            var nextHeader = (MemoryBlockHeader*)nextAddress;
-            if(nextHeader->CurrentAlive)
+            byte* heapStart = UpperAddressSpace.UnmanagedHeap;
+            byte* heapEnd = heapStart + UpperAddressSpace.UnmanagedHeapSize;
+            byte* baseAddress = block.Address;
+            baseHeader->CurrentAlive = false;
+
+            if(baseAddress > heapStart && !baseHeader->PreviousAlive)
             {
-                nextHeader->PreviousAlive = false;
-                nextHeader->PreviousLength = baseHeader->CurrentLength;
-                return;
+                byte* previousAddress = baseAddress - baseHeader->PreviousLength;
+                MemoryBlockHeader* previousHeader = (MemoryBlockHeader*)previousAddress;
+                previousHeader->CurrentLength += baseHeader->CurrentLength;
+                baseAddress = previousAddress;
+                baseHeader = previousHeader;
             }
-            baseHeader->CurrentLength += nextHeader->CurrentLength;
+
+            while(true)
+            {
+                byte* nextAddress = baseAddress + baseHeader->CurrentLength;
+                if(nextAddress >= heapEnd)
+                    return;
+
+                var nextHeader = (MemoryBlockHeader*)nextAddress;
+                if(nextHeader->CurrentAlive)
+                {
+                    nextHeader->PreviousAlive = false;
+                    nextHeader->PreviousLength = baseHeader->CurrentLength;
+                    return;
+                }
+                baseHeader->CurrentLength += nextHeader->CurrentLength;
+            }
         }
     }
     internal static void Init()
