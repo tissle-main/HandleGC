@@ -1,69 +1,61 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace HandleGC.UAS.Handles;
 
-[StructLayout(LayoutKind.Sequential)]
-internal unsafe struct Handle(ulong thisRawValue)
+internal static unsafe class Handle
 {
-    #region Static
     private const ulong AddressMask    = 0b00000000_00000000_01111111_11111111_11111111_11111111_11111111_11111111;
     private const ulong UsageCountMask = 0b00111111_11111111_10000000_00000000_00000000_00000000_00000000_00000000;
     private const ulong GCLockedMask   = 0b01000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
     private const ulong RSFlagMask     = 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
     private const int AddressLength = 47;
     private const int UsageCountShift = AddressLength;
-    #endregion
 
-    #region Instance
-    internal ulong RawValue
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static byte* GetObjectAddress(ulong handle)
     {
-        get => thisRawValue;
+        return (byte*)(handle & AddressMask);
     }
-    internal byte* Address
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ulong SetObjectAddress(ulong handle, byte* address)
     {
-        readonly get => (byte*)(thisRawValue & AddressMask);
-        set
-        {
-            thisRawValue = (thisRawValue & ~AddressMask) | ((ulong)value & AddressMask);
-        }
+        return (handle & ~AddressMask) | ((ulong)address & AddressMask);
     }
-    internal ulong UsageCount
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ulong GetUsageCount(ulong handle)
     {
-        readonly get => (thisRawValue & UsageCountMask) >> UsageCountShift;
-        set
-        {
-            thisRawValue = (thisRawValue & ~UsageCountMask) | ((value << UsageCountShift) & UsageCountMask);
-        }
+        return (handle & UsageCountMask) >> UsageCountShift;
     }
-    internal bool GCLocked
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ulong SetUsageCount(ulong handle, ulong value)
     {
-        readonly get => (thisRawValue & GCLockedMask) != 0;
-        set
-        {
-            if(value)
-            {
-                thisRawValue |= GCLockedMask;
-            }
-            else
-            {
-                thisRawValue &= ~GCLockedMask;
-            }
-        }
+        return (handle & ~UsageCountMask) | ((value << UsageCountShift) & UsageCountMask);
     }
-    internal bool RSFlag
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool GetGCLocked(ulong handle)
     {
-        readonly get => (thisRawValue & RSFlagMask) != 0;
-        set
-        {
-            if(value)
-            {
-                thisRawValue |= RSFlagMask;
-            }
-            else
-            {
-                thisRawValue &= ~RSFlagMask;
-            }
-        }
+        return (handle & GCLockedMask) != 0;
     }
-    #endregion
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ulong SetGCLocked(ulong handle, bool value)
+    {
+        return value ? (handle | GCLockedMask) : (handle & ~GCLockedMask);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool GetRSFlag(ulong handle)
+    {
+        return (handle & RSFlagMask) != 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ulong SetRSFlag(ulong handle, bool value)
+    {
+        return value ? (handle | RSFlagMask) : (handle & ~RSFlagMask);
+    }
 }

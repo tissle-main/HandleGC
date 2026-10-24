@@ -1,4 +1,5 @@
 ﻿using HandleGC.UAS;
+using HandleGC.Imports;
 using System.Runtime.InteropServices;
 
 namespace HandleGC.LAS;
@@ -20,8 +21,7 @@ internal static unsafe class LowerAddressSpace
 
     internal static void Init()
     {
-        //StartAddress = 
-
+        StartAddress = WinImports.ReserveAndCommit(Size);
         NativeMemory.Clear(StartAddress, (nuint)Size);
     }
 }

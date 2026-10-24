@@ -1,7 +1,8 @@
-﻿using HandleGC.LAS;
-using HandleGC.UAS;
-using HandleGC.UAS.Heap;
+﻿using HandleGC.UAS;
+using HandleGC.UAS.Handles;
 
-UpperAddressSpace.Init();
-UnmanagedHeap.Init();
-LowerAddressSpace.Init();
+unsafe
+{
+    UpperAddressSpace.Init();
+    HandleAllocator.Allocate(&UpperAddressSpace.Globals->hardwareThread1, (byte*)0x011, out bool success);
+}

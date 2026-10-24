@@ -1,74 +1,75 @@
-﻿using System.Numerics;
+﻿#define VECTOR256
+
+using System.Numerics;
+using System.Runtime.CompilerServices;
+#if VECTOR512 || VECTOR256 || VECTOR128
 using System.Runtime.Intrinsics;
+#endif
 
 namespace HandleGC.UAS.Handles;
 
-internal unsafe struct HandleTableChunk(Handle* startAddress, uint baseCellIndex)
+internal unsafe struct HandleTableChunk(ulong* firstHandle, uint firstHandleIndex)
 {
     #region Static
-    internal const uint CellCount = 64; 
+    internal const uint HandleCount = 64; 
     #endregion
 
     #region Instance
-    private readonly Handle* startAddress = startAddress;
-    private ulong freeCellBitmap = 0;
-    private readonly uint baseCellIndex = baseCellIndex;
+    private readonly ulong* firstHandle = firstHandle;
+    private readonly uint firstHandleIndex = firstHandleIndex;
+    private ulong freeHandleBitmap = 0;
 
-    internal readonly bool IsDefault
+    internal readonly bool IsNull
     {
-        get => startAddress is null;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => firstHandle is null;
     }
     internal readonly bool IsFull
     {
-        get => freeCellBitmap == 0;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => freeHandleBitmap == 0;
     }
-    internal readonly uint Index
+    internal readonly uint ChunkIndex
     {
-        get => baseCellIndex / CellCount;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => firstHandleIndex / HandleCount;
     }
 
     internal bool Scan()
     {
         ulong newBitmap = 0;
-        ulong* handleTable = (ulong*)startAddress;
-        if(Vector512.IsHardwareAccelerated)
+        ulong* localHandleTable = firstHandle;
+#if VECTOR512
+        for(int index = 0; index < HandleCount; index += 8)
         {
-            for(int index = 0; index < CellCount; index += 8)
+            Vector512<ulong> vector = Vector512.Load(localHandleTable + index);
+            ulong bitmap = Vector512.Equals(vector, Vector512<ulong>.Zero).ExtractMostSignificantBits();
+            newBitmap |= bitmap << index;
+        }
+#elif VECTOR256
+        for(int index = 0; index < HandleCount; index += 4)
+        {
+            Vector256<ulong> vector = Vector256.Load(localHandleTable + index);
+            ulong bitmap = Vector256.Equals(vector, Vector256<ulong>.Zero).ExtractMostSignificantBits();
+            newBitmap |= bitmap << index;
+        }
+#elif VECTOR128
+        for(int index = 0; index < HandleCount; index += 2)
+        {
+            Vector128<ulong> vector = Vector128.Load(localHandleTable + index);
+            ulong bitmap = Vector128.Equals(vector, Vector128<ulong>.Zero).ExtractMostSignificantBits();
+            newBitmap |= bitmap << index;
+        }
+#else
+        for(int index = 0; index < HandleCount; index += 1)
+        {
+            if(localHandleTable[index] == 0)
             {
-                Vector512<ulong> vector = Vector512.Load(handleTable + index);
-                ulong bitmap = Vector512.Equals(vector, Vector512<ulong>.Zero).ExtractMostSignificantBits();
-                newBitmap |= bitmap << index;
+                newBitmap |= 1UL << index;
             }
         }
-        else if(Vector256.IsHardwareAccelerated)
-        {
-            for(int index = 0; index < CellCount; index += 4)
-            {
-                Vector256<ulong> vector = Vector256.Load(handleTable + index);
-                ulong bitmap = Vector256.Equals(vector, Vector256<ulong>.Zero).ExtractMostSignificantBits();
-                newBitmap |= bitmap << index;
-            }
-        }
-        else if(Vector128.IsHardwareAccelerated)
-        {
-            for(int index = 0; index < CellCount; index += 2)
-            {
-                Vector128<ulong> vector = Vector128.Load(handleTable + index);
-                ulong bitmap = Vector128.Equals(vector, Vector128<ulong>.Zero).ExtractMostSignificantBits();
-                newBitmap |= bitmap << index;
-            }
-        }
-        else
-        {
-            for(int index = 0; index < CellCount; index += 1)
-            {
-                if(handleTable[index] == 0)
-                {
-                    newBitmap |= 1UL << index;
-                }
-            }
-        }
-        freeCellBitmap = newBitmap;
+#endif
+        freeHandleBitmap = newBitmap;
         return !IsFull;
     }
     internal uint Allocate(byte* objAddress, out bool success)
@@ -80,13 +81,13 @@ internal unsafe struct HandleTableChunk(Handle* startAddress, uint baseCellIndex
         }
         success = true;
 
-        int index = BitOperations.TrailingZeroCount(freeCellBitmap);
-        freeCellBitmap &= ~(1UL << index);
-        startAddress[index] = new Handle()
-        {
-            Address = objAddress
-        };
-        return baseCellIndex + (uint)index;
+        int localHandleIndex = BitOperations.TrailingZeroCount(freeHandleBitmap);
+        uint globalHandleIndex = firstHandleIndex + (uint)localHandleIndex;
+
+        HandleTable.SetObjectAddress(globalHandleIndex, objAddress);
+        freeHandleBitmap &= ~(1UL << localHandleIndex);
+
+        return globalHandleIndex;
     }
-    #endregion
+#endregion
 }

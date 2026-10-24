@@ -68,11 +68,11 @@ internal static unsafe class GarbageCollector
         Handle* address = UpperAddressSpace.HandleTable;
         for(uint chunkIndex = 0; chunkIndex < chunkEndIndex; chunkIndex++)
         {
-            if(UpperAddressSpace.Globals->hardwareThread1.handleTableChunk.Index == chunkIndex)
+            if(UpperAddressSpace.Globals->hardwareThread1.handleTableChunk.ChunkIndex == chunkIndex)
             {
                 continue;
             }
-            uint baseCellIndex = chunkIndex * HandleTableChunk.CellCount;
+            uint baseCellIndex = chunkIndex * HandleTableChunk.HandleCount;
             HandleTableChunk chunk = new(address + baseCellIndex, baseCellIndex);         
             if(chunk.Scan())
             {

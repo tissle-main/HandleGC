@@ -4,28 +4,23 @@ internal static unsafe class HandleAllocator
 {
     internal static uint Allocate(HardwareThread* thread, byte* objAddress, out bool success)
     {
-        uint cellIndex = thread->handleTableChunk.Allocate(objAddress, out success);
+        HandleTableChunk chunk = thread->handleTableChunk;
+        uint cellIndex = chunk.Allocate(objAddress, out success);
         if(success)
         {
             return cellIndex;
         }
-
-        HandleTableChunk chunk;
-        do
+        chunk = HandleTableBitmap.ReserveFreeChunk();
+        if(chunk.IsNull)
         {
-            chunk = HandleTableBitmap.FindFirstFreeChunk();
-            if(chunk.IsDefault)
-            {
-                throw new OutOfMemoryException("No free chunks available in handle table");
-            }
+            throw new OutOfMemoryException("No free chunks available in handle table");
         }
-        while(!HandleTableBitmap.MarkOccupied(chunk.Index));
         thread->handleTableChunk = chunk;
 
-        return thread->handleTableChunk.Allocate(objAddress, out success);
+        return chunk.Allocate(objAddress, out success);
     }
     internal static void Free(uint cellIndex)
     {
-        *(ulong*)(UpperAddressSpace.HandleTable + cellIndex) = 0;
+        UpperAddressSpace.HandleTable[cellIndex] = 0;
     }
 }
