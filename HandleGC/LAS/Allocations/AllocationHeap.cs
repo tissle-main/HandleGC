@@ -3,6 +3,9 @@ using System.Runtime.CompilerServices;
 
 namespace HandleGC.LAS.Allocations;
 
+/// <summary>
+/// Provides way to get free allocation regions
+/// </summary>
 internal static unsafe class AllocationHeap
 {
     internal const ulong AllocationRegionSize = LowerAddressSpace.MemoryPageSize * 250;
@@ -12,13 +15,19 @@ internal static unsafe class AllocationHeap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => UpperAddressSpace.Globals->allocationHeapSize / AllocationRegionSize;
     }
-    
+
+    /// <summary>
+    /// Finds free region and reserves it. If no free regions available, allocates a new one
+    /// </summary>
+    /// <param name="success">Contains true if region was reserved successfully. Otherwise, contains false</param>
+    /// <returns></returns>
     internal static AllocationRegion TakeFreeRegion(out bool success)
     {
         success = true;
         byte* endAddress = LowerAddressSpace.EndAddress;
         for(ulong index = 1, pageCount = PageCount; index <= pageCount; index++)
         {
+            //Finds free region. Reserves it with CAS
             AllocationRegionHeader* header = (AllocationRegionHeader*)(endAddress - index * AllocationRegionSize);
             if(header->regionState is not AllocationRegionState.Free)
             {
@@ -30,6 +39,7 @@ internal static unsafe class AllocationHeap
             }
         }
 
+        //Other threads can also try to allocate new region, so we using lock to ensure single access.
         WaitLock: while(UpperAddressSpace.Globals->allocationHeapLock)
         {
             Thread.SpinWait(100);
@@ -39,6 +49,8 @@ internal static unsafe class AllocationHeap
             goto WaitLock;
         }
 
+        //Allocate new region
+        //TODO: make access to the "LowerAddressSpace.FreeSpace" sync
         if(LowerAddressSpace.FreeSpace < AllocationRegionSize)
         {
             UpperAddressSpace.Globals->allocationHeapLock = false;

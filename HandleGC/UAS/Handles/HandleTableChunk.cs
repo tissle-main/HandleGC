@@ -8,6 +8,14 @@ using System.Runtime.Intrinsics;
 
 namespace HandleGC.UAS.Handles;
 
+/// <summary>
+/// Controls 64 sequencial handles in the table
+/// </summary>
+/// <param name="firstHandle">Address of the first handle</param>
+/// <param name="firstHandleIndex">Handle index of the first handle</param>
+/// <remarks>
+/// Allocation is not thread-safe, but editing and zeroing of the allocated handles is thread-safe
+/// </remarks>
 internal unsafe struct HandleTableChunk(ulong* firstHandle, uint firstHandleIndex)
 {
     #region Static
@@ -17,6 +25,10 @@ internal unsafe struct HandleTableChunk(ulong* firstHandle, uint firstHandleInde
     #region Instance
     private readonly ulong* firstHandle = firstHandle;
     private readonly uint firstHandleIndex = firstHandleIndex;
+
+    /// <summary>
+    /// Each bit (1) marks the corresponding handle as free
+    /// </summary>
     private ulong freeHandleBitmap = 0;
 
     internal readonly bool IsNull
@@ -35,6 +47,10 @@ internal unsafe struct HandleTableChunk(ulong* firstHandle, uint firstHandleInde
         get => firstHandleIndex / HandleCount;
     }
 
+    /// <summary>
+    /// Synchronizes <see cref="freeHandleBitmap" /> with the actual state of the handles
+    /// </summary>
+    /// <returns>True if the chunk contains free handles. Otherwise, returns false</returns>
     internal bool Scan()
     {
         ulong newBitmap = 0;
@@ -72,6 +88,13 @@ internal unsafe struct HandleTableChunk(ulong* firstHandle, uint firstHandleInde
         freeHandleBitmap = newBitmap;
         return !IsFull;
     }
+
+    /// <summary>
+    /// Reserves a handle in the chunk
+    /// </summary>
+    /// <param name="objAddress">Address of the object</param>
+    /// <param name="success">Contains true if handle was reserved successfully. Otherwise, contains false</param>
+    /// <returns></returns>
     internal uint Allocate(byte* objAddress, out bool success)
     {
         if(IsFull && !Scan())
