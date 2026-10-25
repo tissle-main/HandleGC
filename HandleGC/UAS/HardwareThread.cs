@@ -10,19 +10,7 @@ namespace HandleGC.UAS;
 [StructLayout(LayoutKind.Sequential, Size = 64)]
 internal unsafe struct HardwareThread
 {
-    internal HandleTableChunk handleTableChunk;
-    internal AllocationRegion allocationRegion;
-    internal bool safePointReached;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ulong* GCNew(uint size, out bool success)
-    {
-        fixed(AllocationRegion* region = &allocationRegion)
-        fixed(HandleTableChunk* chunk = &handleTableChunk)
-        {
-            return ObjectAllocator.Allocate(region, chunk, size, out success);
-        }
-    }
+    #region Static
     internal static void RunThread(HardwareThread* hthread)
     {
         Thread th = new(obj =>
@@ -83,12 +71,10 @@ internal unsafe struct HardwareThread
                 {
                     index = 1;
                 }
-                if(index % 10 == 0)
+                if(index % 500 == 0)
                 {
-                    Console.WriteLine("GlobalHeapSize: {0}", UpperAddressSpace.Globals->globalHeapSize);
-                    Console.WriteLine("AllocationRegions: {0}", AllocationHeap.PageCount);
+                    Console.WriteLine(hthread->allocationRegion.ToString());
                 }
-
             }
         });
         th.Start((ulong)hthread);
@@ -98,4 +84,21 @@ internal unsafe struct HardwareThread
 
         }
     }
+    #endregion
+
+    #region Instance
+    internal HandleTableChunk handleTableChunk;
+    internal AllocationRegion allocationRegion;
+    internal bool safePointReached;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal ulong* GCNew(uint size, out bool success)
+    {
+        fixed(AllocationRegion* region = &allocationRegion)
+        fixed(HandleTableChunk* chunk = &handleTableChunk)
+        {
+            return ObjectAllocator.Allocate(region, chunk, size, out success);
+        }
+    }
+    #endregion 
 }

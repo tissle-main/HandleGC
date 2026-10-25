@@ -68,4 +68,11 @@ internal unsafe struct ObjectHeader
         }
     }
     #endregion
+
+    #region Base
+    public override readonly string ToString()
+    {
+        return $"[{(Alive ? "Alive" : "Dead")}|{(nuint)TypeAddress}|{Length}|{HandleIndex}]";
+    }
+    #endregion
 }

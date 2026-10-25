@@ -29,18 +29,18 @@ internal unsafe struct Globals
         {
             HardwareThread.RunGCThread(p1);
         }
-        fixed(HardwareThread* p2 = &hardwareThread2)
-        {
-            HardwareThread.RunThread(p2);
-        }
+        //fixed(HardwareThread* p2 = &hardwareThread2)
+        //{
+        //    HardwareThread.RunThread(p2);
+        //}
     }
     internal void WaitForSafePoints()
     {
-        hardwareThread2.safePointReached = false;
-        while(!hardwareThread2.safePointReached)
-        {
-            Thread.SpinWait(10);
-        }
+        //hardwareThread2.safePointReached = false;
+        //while(!hardwareThread2.safePointReached)
+        //{
+        //    Thread.SpinWait(10);
+        //}
     }
     internal readonly bool ContainsHandleTableChunk(uint chunkIndex)
     {
