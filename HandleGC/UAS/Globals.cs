@@ -23,6 +23,17 @@ internal unsafe struct Globals
         HandleTableBitmap.MarkOccupied(1);
         hardwareThread1.allocationRegion = AllocationHeap.TakeFreeRegion(out success);
     }
+    internal void RunAll()
+    {
+        fixed(HardwareThread* p1 = &hardwareThread1)
+        {
+            HardwareThread.RunGCThread(p1);
+        }
+        fixed(HardwareThread* p2 = &hardwareThread2)
+        {
+            HardwareThread.RunThread(p2);
+        }
+    }
     internal void WaitForSafePoints()
     {
         //hardwareThread2.safePointReached = false;
