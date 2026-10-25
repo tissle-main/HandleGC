@@ -1,4 +1,5 @@
 ﻿using HandleGC.UAS;
+using System.Numerics;
 using HandleGC.UAS.Handles;
 using HandleGC.LAS.Allocations;
 
@@ -148,6 +149,31 @@ internal static unsafe class GarbageCollector
             if(header->regionState is AllocationRegionState.Retired)
             {
                 CollectAllocationRegion(header);
+            }
+        }
+    }
+    internal static void CollectHandleTable()
+    {
+        ulong* words = (ulong*)UpperAddressSpace.HandleTableBitmap;
+        for(uint wordIndex = 0; wordIndex < HandleTableBitmap.WordCount; wordIndex++)
+        {
+            ulong word = words[wordIndex];
+            if(word == ulong.MaxValue)
+            {
+                continue;
+            }
+
+            uint localChunkIndex = (uint)BitOperations.TrailingZeroCount(~word);
+            uint globalChunkIndex = wordIndex * HandleTableBitmap.ChunksPerWord + localChunkIndex;
+            uint globalHandleIndex = globalChunkIndex * HandleTableChunk.HandleCount;
+            HandleTableChunk chunk = new(UpperAddressSpace.HandleTable + globalHandleIndex, globalHandleIndex);
+            if(UpperAddressSpace.Globals->ContainsHandleTableChunk(globalChunkIndex))
+            {
+                continue;
+            }
+            if(chunk.Scan())
+            {
+                HandleTableBitmap.MarkFree(globalChunkIndex);
             }
         }
     }

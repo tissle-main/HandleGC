@@ -31,4 +31,8 @@ internal unsafe struct Globals
         //    Thread.SpinWait(10);
         //}
     }
+    internal bool ContainsHandleTableChunk(uint chunkIndex)
+    {
+        return hardwareThread1.handleTableChunk.ChunkIndex == chunkIndex || hardwareThread2.handleTableChunk.ChunkIndex == chunkIndex;
+    }
 }

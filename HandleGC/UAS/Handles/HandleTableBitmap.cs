@@ -17,14 +17,11 @@ internal static unsafe class HandleTableBitmap
         ulong previous = Interlocked.And(ref words[wordIndex], ~mask);
         return (previous & mask) != 0;
     }
-    internal static bool MarkFree(uint chunkIndex)
+    internal static void MarkFree(uint chunkIndex)
     {
         ulong* words = (ulong*)UpperAddressSpace.HandleTableBitmap;
         (ulong wordIndex, ulong bitIndex) = ulong.DivRem(chunkIndex, 64);
-
-        ulong mask = 1UL << (int)bitIndex;
-        ulong previous = Interlocked.Or(ref words[wordIndex], mask);
-        return (previous & mask) == 0;
+        words[wordIndex] |= 1UL << (int)bitIndex;
     }
     internal static HandleTableChunk ReserveFreeChunk(out bool success)
     {
