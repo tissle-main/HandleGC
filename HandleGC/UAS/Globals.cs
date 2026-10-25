@@ -36,13 +36,13 @@ internal unsafe struct Globals
     }
     internal void WaitForSafePoints()
     {
-        //hardwareThread2.safePointReached = false;
-        //while(!hardwareThread2.safePointReached)
-        //{
-        //    Thread.SpinWait(10);
-        //}
+        hardwareThread2.safePointReached = false;
+        while(!hardwareThread2.safePointReached)
+        {
+            Thread.SpinWait(10);
+        }
     }
-    internal bool ContainsHandleTableChunk(uint chunkIndex)
+    internal readonly bool ContainsHandleTableChunk(uint chunkIndex)
     {
         return hardwareThread1.handleTableChunk.ChunkIndex == chunkIndex || hardwareThread2.handleTableChunk.ChunkIndex == chunkIndex;
     }

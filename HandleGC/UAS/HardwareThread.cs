@@ -40,6 +40,7 @@ internal unsafe struct HardwareThread
                 {
                     ObjectAccessor.DeleteObject(handle);
                 }
+                hthread->safePointReached = true;
             }
         });
         th.Start((ulong)hthread);
@@ -82,12 +83,12 @@ internal unsafe struct HardwareThread
                 {
                     index = 1;
                 }
-
                 if(index % 10 == 0)
                 {
                     Console.WriteLine("GlobalHeapSize: {0}", UpperAddressSpace.Globals->globalHeapSize);
                     Console.WriteLine("AllocationRegions: {0}", AllocationHeap.PageCount);
                 }
+
             }
         });
         th.Start((ulong)hthread);
