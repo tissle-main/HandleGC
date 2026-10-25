@@ -10,11 +10,11 @@ internal static unsafe class ObjectAllocator
     {
         while(true)
         {
-            uint allocationSize = allocationRegion->regionHeader->allocatedSize;
+            uint allocatedSize = allocationRegion->regionHeader->allocatedSize;
             uint objectSize = ObjectHeader.Size + size;
-            if(AllocationHeap.AllocationRegionSize - allocationSize >= objectSize)
+            if(AllocationHeap.AllocationRegionSize - allocatedSize >= objectSize)
             {
-                byte* objAddress = (byte*)allocationRegion + allocationSize;
+                byte* objAddress = (byte*)allocationRegion->regionHeader + allocatedSize;
                 ObjectHeader* header = (ObjectHeader*)objAddress;
                 header->Alive = true;
                 header->Length = objectSize;

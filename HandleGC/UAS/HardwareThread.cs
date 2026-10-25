@@ -11,6 +11,7 @@ internal unsafe struct HardwareThread
 {
     internal HandleTableChunk handleTableChunk;
     internal AllocationRegion allocationRegion;
+    internal bool safePointReached;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ulong* GCNew(uint size, out bool success)

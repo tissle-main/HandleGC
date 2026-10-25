@@ -1,18 +1,24 @@
 ﻿using HandleGC.LAS;
 using HandleGC.UAS;
+using HandleGC.LAS.Allocations;
+using HandleGC.LAS.GarbageCollection;
 
 LowerAddressSpace.Init();
 UpperAddressSpace.Init();
 unsafe
 {
-    ulong* handle = UpperAddressSpace.Globals->hardwareThread1.GCNew(16, out bool success);
-    ObjectAccessor.AcquireObject(handle, &SetData);
-    ObjectAccessor.DeleteObject(handle);
-
-    static void SetData(byte* ptr)
+    for(int index = 0; index < 110; index++)
     {
-        *(ulong*)ptr = 20;
+        ulong* handle = UpperAddressSpace.Globals->hardwareThread1.GCNew(10000, out bool success);
+        Console.WriteLine("AllocationRegions: {0}", AllocationHeap.PageCount);
+        Console.WriteLine("AllocationCount: {0}", UpperAddressSpace.Globals->hardwareThread1.allocationRegion.regionHeader->allocatedSize);
+        if(Random.Shared.NextSingle() > 0.5)
+        {
+            ObjectAccessor.DeleteObject(handle);
+        }
+        Thread.Sleep(1);
     }
+    GarbageCollector.CollectAllocationHeap();
 }
 
 

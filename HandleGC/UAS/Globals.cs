@@ -1,5 +1,5 @@
-﻿using HandleGC.LAS.Allocations;
-using HandleGC.UAS.Handles;
+﻿using HandleGC.UAS.Handles;
+using HandleGC.LAS.Allocations;
 using System.Runtime.InteropServices;
 
 namespace HandleGC.UAS;
@@ -22,5 +22,13 @@ internal unsafe struct Globals
         hardwareThread2.handleTableChunk = new HandleTableChunk(UpperAddressSpace.HandleTable + HandleTableChunk.HandleCount, HandleTableChunk.HandleCount);
         HandleTableBitmap.MarkOccupied(1);
         hardwareThread1.allocationRegion = AllocationHeap.TakeFreeRegion(out success);
+    }
+    internal void WaitForSafePoints()
+    {
+        //hardwareThread2.safePointReached = false;
+        //while(!hardwareThread2.safePointReached)
+        //{
+        //    Thread.SpinWait(10);
+        //}
     }
 }

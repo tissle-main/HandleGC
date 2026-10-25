@@ -12,9 +12,9 @@ internal unsafe struct ObjectHeader
     #endregion
 
     #region Instance
-    internal ulong rawValue;
-    internal uint length;
-    internal uint handleIndex;
+    private ulong rawValue;
+    private uint length;
+    private uint handleIndex;
 
     internal bool Alive
     {
