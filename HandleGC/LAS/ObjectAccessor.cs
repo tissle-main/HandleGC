@@ -10,7 +10,7 @@ internal static unsafe class ObjectAccessor
         ulong handleLocal = *handle;
         if(!Handle.GetRSFlag(handleLocal))
         {
-            action(Handle.GetObjectAddress(handleLocal));
+            action(Handle.GetObjectAddress(handleLocal) + ObjectHeader.Size);
         }
         else
         {
@@ -24,13 +24,13 @@ internal static unsafe class ObjectAccessor
                     {
                         Thread.SpinWait(10);
                     }
-                    action(Handle.GetObjectAddress(*handle));
+                    action(Handle.GetObjectAddress(*handle) + ObjectHeader.Size);
                     return;
                 }
                 newHandle = Handle.SetUsageCount(handleLocal, Handle.GetUsageCount(handleLocal) + 1);
             }
             while(Interlocked.CompareExchange(ref *handle, newHandle, handleLocal) != handleLocal);
-            action(Handle.GetObjectAddress(handleLocal));
+            action(Handle.GetObjectAddress(handleLocal) + ObjectHeader.Size);
             do
             {
                 handleLocal = *handle;

@@ -13,7 +13,7 @@ internal unsafe struct HardwareThread
     internal AllocationRegion allocationRegion;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ObjectHeader* GCNew(uint size, out bool success)
+    internal ulong* GCNew(uint size, out bool success)
     {
         fixed(AllocationRegion* region = &allocationRegion)
         fixed(HandleTableChunk* chunk = &handleTableChunk)

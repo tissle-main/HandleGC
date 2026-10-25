@@ -5,7 +5,14 @@ LowerAddressSpace.Init();
 UpperAddressSpace.Init();
 unsafe
 {
-    ObjectHeader* header = UpperAddressSpace.Globals->hardwareThread1.GCNew(16, out bool success);
+    ulong* handle = UpperAddressSpace.Globals->hardwareThread1.GCNew(16, out bool success);
+    ObjectAccessor.AcquireObject(handle, &SetData);
+    ObjectAccessor.DeleteObject(handle);
+
+    static void SetData(byte* ptr)
+    {
+        *(ulong*)ptr = 20;
+    }
 }
 
 
